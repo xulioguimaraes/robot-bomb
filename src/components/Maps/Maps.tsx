@@ -1,7 +1,7 @@
 import { maps } from "../../world/maps";
 import bomb from "../../../public/bomb1.svg";
 import player from "../../../public/player.svg";
-import Image from "next/image";
+import { CardMedia, styled } from "@mui/material";
 interface MapsProps {
   positionPlayer: string;
   pump: {
@@ -10,6 +10,16 @@ interface MapsProps {
   };
   positionRandomFruit: (string[] | undefined)[];
 }
+const Image = styled("img")(({ theme }) => ({
+  position: "absolute",
+}));
+const BoxCenter = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "48px",
+  height: "43px",
+}));
 export const Maps = ({
   positionPlayer,
   pump,
@@ -21,41 +31,43 @@ export const Maps = ({
         <div key={indexArray} style={{ display: "flex" }}>
           {item.map((itemMatrix, indexMatrix) => {
             return (
-              <div
+              <BoxCenter
                 key={[indexArray, indexMatrix].join()}
-                style={{
+                sx={{
                   background:
                     [indexArray, indexMatrix].join() === positionPlayer
                       ? "#94a162"
                       : itemMatrix.background === ""
                       ? "#94a162"
                       : itemMatrix.background,
-                  width: itemMatrix.width,
-                  height: itemMatrix.heith,
                 }}
               >
                 {/* {itemMatrix.value} */}
                 {[indexArray, indexMatrix].join() === positionPlayer && (
                   <>
-                    <Image src={player} alt="player" />
+                    <Image
+                      src="https://www.svgrepo.com/show/40641/robot.svg"
+                      alt="player"
+                      width={"48px"}
+                      height="43px"
+                    />
                   </>
                 )}
-                {pump.active &&
-                  pump.positionBomb === [indexArray, indexMatrix].join() && (
-                    <>
-                      <Image src={bomb} alt="bomb" />
-                    </>
-                  )}
                 {positionRandomFruit.map((postion) => {
                   if (String(postion) === [indexArray, indexMatrix].join()) {
                     return (
-                      <Image key={String(postion)} src={bomb} alt="bomb" />
+                      <Image
+                        key={String(postion)}
+                        src="http://simpleicon.com/wp-content/uploads/coin-money-9-64x64.png"
+                        alt="bomb"
+                        width={"33px"}
+                      />
                     );
                   }
                   return <></>;
                 })}
                 {/* { [indexArray, indexMatrix]} */}
-              </div>
+              </BoxCenter>
             );
           })}
         </div>
