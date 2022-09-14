@@ -1,15 +1,18 @@
-import { Box, Container, styled } from "@mui/material";
+import { Box, Button, Container, styled } from "@mui/material";
 import type { GetServerSideProps, NextPage } from "next";
 import { createRef, useEffect, useState } from "react";
 import Appbar from "../components/Appbar/Appbar";
+import { ModalWinner } from "../components/MadalWinner/MadalWinner";
 import { Maps } from "../components/Maps/Maps";
 import { movementPlayer } from "../player/movementPlayer";
+import { positionPlayerInitialRandom } from "../player/positionPlayerInitialRandom";
 import { maps } from "../world/maps";
 import { positionFruitMapsRandom } from "../world/positionFruitMapsRandom";
 interface HomeProps {
   positionWall: string;
   positionPlayerRandom: string;
   fruitRandomPosition: string;
+  positionIaRandom: string;
 }
 const BoxSpace = styled("div")(({ theme }) => ({
   display: "flex",
@@ -27,6 +30,7 @@ export default function Home({
   positionWall,
   positionPlayerRandom,
   fruitRandomPosition,
+  positionIaRandom,
 }: HomeProps) {
   const [positionRandomFruit, setPositionRandomFruit] = useState<
     Array<any[] | undefined>
@@ -35,9 +39,11 @@ export default function Home({
     JSON.parse(positionWall)
   );
   const [pump, setPump] = useState({ active: false, positionBomb: "" });
-  const [pointsPlayer1, setPointsPlayer2] = useState<string[]>([]);
+  const [pointsPlayer1, setPointsPlayer1] = useState<string[]>([]);
   const [resetPoints, setResetPoints] = useState(false);
+  const [isModalWinnerOpen, setIsModalWinnerOpen] = useState(false);
   const [positionPlayer, setPositionPlayer] = useState(positionPlayerRandom);
+  const [positionPlayerIa, setPositionPlayerIa] = useState(positionIaRandom);
   const ref = createRef<HTMLInputElement>();
 
   const handleClick = () => {
@@ -48,19 +54,56 @@ export default function Home({
     setPositionRandomFruit(
       positionFruitMapsRandom(fruitRandomPosition, positionPlayer)
     );
-    setPointsPlayer2([]);
+    setPointsPlayer1([]);
   }, [resetPoints]);
+  useEffect(() => {
+    if (positionRandomFruit.length === 0) {
+      setIsModalWinnerOpen(true);
+      console.log(isModalWinnerOpen);
+    }
+  }, [positionRandomFruit]);
   useEffect(() => {
     if (positionRandomFruit.length > 0) {
       const positionAux = positionRandomFruit.filter((item) => {
         if (String(item) !== positionPlayer) {
           return item;
         }
-        setPointsPlayer2((event) => [...event, String(item)]);
+        setPointsPlayer1((event) => [...event, String(item)]);
       });
       setPositionRandomFruit(positionAux);
+      setIsModalWinnerOpen(false);
     }
   }, [positionPlayer]);
+  useEffect(() => {
+    setTimeout(() => {
+      console.log(positionPlayerIa);
+      const auxPosition = positionPlayerIa.split(",");
+      const newPosibility = [
+        `${parseInt(auxPosition[0]) - 1},${parseInt(auxPosition[1])}`,
+        `${parseInt(auxPosition[0])},${parseInt(auxPosition[1]) + 1}`,
+        `${parseInt(auxPosition[0]) + 1},${parseInt(auxPosition[1])}`,
+        `${parseInt(auxPosition[0])},${parseInt(auxPosition[1]) - 1}`,
+      ];
+      const posibiltyNewPath = newPosibility.map((position) => {
+        const posibilityPach = maps.some((positionMap, indexX) => {
+          const postionAuxMap = positionMap.some((item, indexY) => {
+            if ([indexX, indexY].join() === position && item.type === "wall") {
+              console.log([indexX, indexY].join());
+              return true;
+            }
+          });
+          if (postionAuxMap) {
+            return true;
+          }
+        });
+        if (posibilityPach) {
+          return null;
+        }
+        return position;
+      });
+      console.log(posibiltyNewPath);
+    }, 1000);
+  }, []);
 
   const handleDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     movementPlayer(
@@ -76,19 +119,27 @@ export default function Home({
       <Container component="main">
         <BoxSpace>
           <p>Pontos: {pointsPlayer1.length}</p>{" "}
-          <button onClick={() => setResetPoints(!resetPoints)}>Resetar</button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => setResetPoints(!resetPoints)}
+          >
+            Resetar
+          </Button>
         </BoxSpace>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div onClick={handleClick}>
             <InputKeyboard ref={ref} type="text" onKeyDown={handleDown} />
             <Maps
               positionPlayer={positionPlayer}
+              positionPlayerIa={positionPlayerIa}
               pump={pump}
               positionRandomFruit={positionRandomFruit}
             />
           </div>
         </div>
       </Container>
+      <ModalWinner isModalWinnerOpen={isModalWinnerOpen} />
     </>
   );
 }
@@ -105,23 +156,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       }
     });
   });
-  let positionX = 0;
-  let positionY = 0;
-  let finalLoop = 10;
-  for (let index = 0; index < finalLoop; index++) {
-    positionX = Math.floor(Math.random() * 10 + 1);
-    positionY = Math.floor(Math.random() * 10 + 1);
-    const validationPosition = maps.some((_, _X) =>
-      _.some(
-        (matrix, _Y) =>
-          `${_X},${_Y}` === `${positionX},${positionY}` &&
-          matrix.type === "wall"
-      )
-    );
-    if (!validationPosition) {
-      finalLoop = index;
-    }
-  }
 
   const positionPossibleFruit: string[] = [];
   maps.forEach((_, _X) => {
@@ -131,13 +165,15 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       }
     });
   });
-  const positionPlayerRandom = `${positionX},${positionY}`;
+  const positionPlayerRandom = positionPlayerInitialRandom();
+  const positionIaRandom = positionPlayerInitialRandom();
 
   return {
     props: {
       positionWall: JSON.stringify(positionWall),
       positionPlayerRandom,
       fruitRandomPosition: JSON.stringify(positionPossibleFruit),
+      positionIaRandom,
     },
   };
 };
